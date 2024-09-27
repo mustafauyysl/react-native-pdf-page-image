@@ -11,36 +11,59 @@ npm install react-native-pdf-page-image
 
 ## Usage
 
-Import the module in your code and use the functions to generate images from individual pages or all pages of a PDF document.
-
+Importing the Module
 ```js
 import PdfPageImage from 'react-native-pdf-page-image';
+```
 
+
+### Generating Images for All PDF Pages
+
+You can generate images for all pages in a PDF document with the following method:
+```js
 const filePath = "content://com.android.providers.downloads.documents/document/msf%3A37";
 const scale = 1.0;
-
-// Open a PDF document
-PdfPageImage.open(filePath)
-  .then(info => console.log(`PDF opened with URI: ${info.uri}, Page count: ${info.pageCount}`))
-  .catch(error => console.error('Error opening PDF:', error));
-
-// Generate an image from a specific page
-PdfPageImage.generate(filePath, 1, scale)  // Example uses page number 1
-  .then(image => console.log(`Generated image: ${image.uri}, Width: ${image.width}, Height: ${image.height}`))
-  .catch(error => console.error('Error generating image:', error));
 
 // Generate images from all pages
 PdfPageImage.generateAllPages(filePath, scale)
   .then(images => images.forEach((image, index) => console.log(`Page ${index+1}: ${image.uri}, Width: ${image.width}, Height: ${image.height}`)))
   .catch(error => console.error('Error generating images:', error));
 
-// Close the PDF document
+```
+
+
+### Generating an Image for a Specific Page
+
+If you only need to generate an image for a single page, use the generate method:
+```js
+const filePath = "content://com.android.providers.downloads.documents/document/msf%3A37";
+const scale = 1.0;
+
+// Generate an image from a specific page
+PdfPageImage.generate(filePath, 1, scale)  // Example uses page number 1
+  .then(image => console.log(`Generated image: ${image.uri}, Width: ${image.width}, Height: ${image.height}`))
+  .catch(error => console.error('Error generating image:', error));
+```
+
+
+### Optional: Getting PDF Information
+
+To open a PDF document and retrieve its information, use the open method:
+```js
+PdfPageImage.open(filePath)
+  .then(info => console.log(`PDF opened with URI: ${info.uri}, Page count: ${info.pageCount}`))
+  .catch(error => console.error('Error opening PDF:', error));
+```
+
+
+### Optional: Closing the PDF Document
+
+After processing, you can close the PDF document and delete any temporary files that were generated. Use the close method:
+```js
 PdfPageImage.close(filePath)
   .then(() => console.log('PDF closed successfully.'))
   .catch(error => console.error('Error closing PDF:', error));
-
 ```
-
 
 # API
 
