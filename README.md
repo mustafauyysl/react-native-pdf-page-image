@@ -21,11 +21,11 @@ import PdfPageImage from 'react-native-pdf-page-image';
 
 You can generate images for all pages in a PDF document with the following method:
 ```js
-const filePath = "content://com.android.providers.downloads.documents/document/msf%3A37";
+const uri = "https://pdfobject.com/pdf/sample.pdf";
 const scale = 1.0;
 
 // Generate images from all pages
-PdfPageImage.generateAllPages(filePath, scale)
+PdfPageImage.generateAllPages(uri, scale)
   .then(images => images.forEach((image, index) => console.log(`Page ${index+1}: ${image.uri}, Width: ${image.width}, Height: ${image.height}`)))
   .catch(error => console.error('Error generating images:', error));
 
@@ -36,11 +36,11 @@ PdfPageImage.generateAllPages(filePath, scale)
 
 If you only need to generate an image for a single page, use the generate method:
 ```js
-const filePath = "content://com.android.providers.downloads.documents/document/msf%3A37";
+const uri = "https://pdfobject.com/pdf/sample.pdf";
 const scale = 1.0;
 
 // Generate an image from a specific page
-PdfPageImage.generate(filePath, 1, scale)  // Example uses page number 1
+PdfPageImage.generate(uri, 1, scale)  // Example uses page number 1
   .then(image => console.log(`Generated image: ${image.uri}, Width: ${image.width}, Height: ${image.height}`))
   .catch(error => console.error('Error generating image:', error));
 ```
@@ -50,7 +50,7 @@ PdfPageImage.generate(filePath, 1, scale)  // Example uses page number 1
 
 To open a PDF document and retrieve its information, use the open method:
 ```js
-PdfPageImage.open(filePath)
+PdfPageImage.open(uri)
   .then(info => console.log(`PDF opened with URI: ${info.uri}, Page count: ${info.pageCount}`))
   .catch(error => console.error('Error opening PDF:', error));
 ```
@@ -60,7 +60,7 @@ PdfPageImage.open(filePath)
 
 After processing, you can close the PDF document and delete any temporary files that were generated. Use the close method:
 ```js
-PdfPageImage.close(filePath)
+PdfPageImage.close(uri)
   .then(() => console.log('PDF closed successfully.'))
   .catch(error => console.error('Error closing PDF:', error));
 ```
