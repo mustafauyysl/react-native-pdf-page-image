@@ -8,11 +8,13 @@ import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
+import android.util.Base64
 import com.facebook.react.bridge.ReadableNativeMap
 import com.facebook.react.bridge.WritableNativeMap
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.net.URL
 import java.util.HashMap
 import java.util.UUID
 
@@ -42,7 +44,43 @@ class PdfFlyweight(private val context: Context, val uriString: String) {
         val file = File(uriString)
         ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
       }
+      uri.scheme in listOf("http", "https") -> {
+        val downloadedFile = downloadFileFromUrl(uriString) ?: return null
+        ParcelFileDescriptor.open(downloadedFile, ParcelFileDescriptor.MODE_READ_ONLY)
+      }
+      uriString.startsWith("data:") -> {
+        val base64Data = uriString.substringAfter(",")
+        val decodedData = Base64.decode(base64Data, Base64.DEFAULT)
+        val tempFile = File.createTempFile(UUID.randomUUID().toString(), ".pdf", context.cacheDir)
+        tempFile.deleteOnExit()
+        FileOutputStream(tempFile).use { it.write(decodedData) }
+        ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
+      }
       else -> null
+    }
+  }
+
+  /**
+   * Descarga un archivo desde una URL y lo guarda en un archivo temporal.
+   */
+  private fun downloadFileFromUrl(urlString: String): File? {
+    return try {
+      val url = URL(urlString)
+      val connection = url.openConnection()
+      connection.connect()
+
+      val inputStream = connection.getInputStream()
+      val tempFile = File.createTempFile(UUID.randomUUID().toString(), ".pdf", context.cacheDir)
+      tempFile.deleteOnExit()
+
+      FileOutputStream(tempFile).use { output ->
+        inputStream.copyTo(output)
+      }
+
+      tempFile
+    } catch (e: Exception) {
+      e.printStackTrace()
+      null
     }
   }
 

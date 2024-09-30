@@ -23,12 +23,10 @@ export default function App() {
       const { uri } = await DocumentPicker.pickSingle({
         type: [DocumentPicker.types.pdf],
       });
-      //const info = await PdfPageImage.open(uri);
-      //console.debug("info", JSON.stringify(info, null, 1));
       const result = await PdfPageImage.generate(uri, 0, 1.0);
-      //console.debug("result", JSON.stringify(result, null, 1))
       setThumbnail(result);
       setError(undefined);
+
     } catch (err) {
       if (DocumentPicker.isCancel(err)) {
         // User cancelled the picker, exit any dialogs or menus and move on
@@ -41,21 +39,11 @@ export default function App() {
 
   /*const onPress = async () => {
     try {
-      const { uri } = await DocumentPicker.pickSingle({
-        type: [DocumentPicker.types.pdf],
-      });
-      const info = await PdfPageImage.open(uri);
-      console.debug("info", JSON.stringify(info, null, 1));
-      
-      for (let page = 0; page < info.pageCount; page++) {
-        const pageResult = await PdfPageImage.generate(uri, page, 1.0)
-        console.debug("page:", page, JSON.stringify(pageResult, null, 1))
-      }
-
-      await PdfPageImage.close(uri)
-
-      setThumbnail(undefined);
+      const uri  = "https://pdfobject.com/pdf/sample.pdf"
+      const result = await PdfPageImage.generate(uri, 0, 1.0);
+      setThumbnail(result);
       setError(undefined);
+
     } catch (err) {
       if (DocumentPicker.isCancel(err)) {
         // User cancelled the picker, exit any dialogs or menus and move on
