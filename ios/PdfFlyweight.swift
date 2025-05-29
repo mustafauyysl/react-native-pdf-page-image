@@ -178,8 +178,12 @@ class PdfFlyweight {
      */
     private func generateThumbnail(
         page: Int,
-        folderName: String
+        folderName: String?
     ) throws -> [String: Any] {
+        
+        guard let folderName = folderName, !folderName.isEmpty else {
+            throw NSError(domain: "Folder name is required for thumbnail generation", code: 400)
+        }
         
         guard let pdfPage = document.page(at: page) else {
             throw NSError(domain: "Page number \(page) is invalid, file has \(document.pageCount) pages", code: 404)
