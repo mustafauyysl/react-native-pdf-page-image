@@ -114,7 +114,7 @@ class PdfFlyweight(private val context: Context, val uriString: String) {
   /**
    * Genera una página renderizada del PDF a una imagen, guardándola localmente.
    */
-  private fun generatePage(page: Int, scale: Float): ReadableNativeMap {
+  private fun generatePage(page: Int, scale: Float, folderName: String? = null, isThumbnail: Boolean = false): ReadableNativeMap {
     if (page < 0 || page >= pdfRenderer.pageCount) {
       throw RuntimeException("Page number $page is invalid, file has ${pdfRenderer.pageCount} pages")
     }
@@ -134,7 +134,7 @@ class PdfFlyweight(private val context: Context, val uriString: String) {
     currentPage.close()
 
     // Write file
-    val outputFile = generateOutputFilename()
+    val outputFile = generateOutputFilename(page, folderName, isThumbnail)
     bitmap.storeAs(outputFile)
 
     // Result
@@ -148,17 +148,37 @@ class PdfFlyweight(private val context: Context, val uriString: String) {
   /**
    * Obtiene una página específica, usando caché para mejorar el rendimiento.
    */
-  fun getPage(index: Int, scale: Float = 2.0f): ReadableNativeMap {
-    val key = "($index):($scale)"
-    return pageCache.getOrPut(key) { generatePage(index, scale) }
+  fun getPage(index: Int, scale: Float = 2.0f, folderName: String? = null): ReadableNativeMap {
+    val key = "($index):($scale):(${folderName ?: ""})"
+    val cachedPage = pageCache.getOrPut(key) { generatePage(index, scale, folderName) }
+    
+    // Si es la primera página y hay folderName, generar también el thumbnail
+    if (index == 0 && folderName != null && folderName.isNotEmpty()) {
+      val thumbnailKey = "($index):(0.3):(${folderName}):thumbnail"
+      if (!pageCache.containsKey(thumbnailKey)) {
+        val thumbnail = generatePage(index, 0.3f, folderName, true)
+        pageCache[thumbnailKey] = thumbnail
+      }
+    }
+    
+    return cachedPage
   }
 
   /**
    * Genera un nombre de archivo temporal único para almacenar un bitmap.
    */
-  private fun generateOutputFilename(): File {
-    val uuidString = UUID.randomUUID().toString()
-    return File.createTempFile(uuidString, ".png", context.cacheDir)
+  private fun generateOutputFilename(pageIndex: Int, folderName: String? = null, isThumbnail: Boolean = false): File {
+    val filename = if (isThumbnail) "thumbnail.png" else "$pageIndex.png"
+    
+    return if (folderName != null) {
+      val folder = File(context.filesDir, folderName)
+      if (!folder.exists()) {
+        folder.mkdirs()
+      }
+      File(folder, filename)
+    } else {
+      File.createTempFile(pageIndex.toString(), ".png", context.cacheDir)
+    }
   }
 
   /**

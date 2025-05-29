@@ -57,14 +57,14 @@ class PdfPageImageModule(reactContext: ReactApplicationContext) : ReactContextBa
    * Generates images for all pages of a PDF at the specified scale.
    */
   @ReactMethod
-  fun generateAllPages(uri: String, scale: Float, promise: Promise) {
+  fun generateAllPages(uri: String, scale: Float, folderName: String, promise: Promise) {
     try {
       val pdf = getPdf(uri)
 
       val result = WritableNativeArray()
       for (page in 0 until pdf.pageCount()) {
         val target = WritableNativeMap()
-        target.merge(pdf.getPage(page, scale))
+        target.merge(pdf.getPage(page, scale, if (folderName.isEmpty()) null else folderName))
         result.pushMap(target)
       }
       promise.resolve(result)

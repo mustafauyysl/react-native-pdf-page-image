@@ -54,10 +54,11 @@ class PdfPageImage: NSObject {
     /**
      Generates images for all pages of a PDF at the specified scale.
      */
-    @objc(generateAllPages:withScale:withResolver:withRejecter:)
+    @objc(generateAllPages:withScale:withFolderName:withResolver:withRejecter:)
     func generateAllPages(
         uri: String,
         scale: Float,
+        folderName: String,
         resolve: RCTPromiseResolveBlock,
         reject: RCTPromiseRejectBlock
     ) {
@@ -68,7 +69,8 @@ class PdfPageImage: NSObject {
             for page in 0 ..< pdf.pageCount() {
                 let pageResult = try pdf.getPage(
                     index: page,
-                    scale: CGFloat(scale)
+                    scale: CGFloat(scale),
+                    folderName: folderName.isEmpty ? nil : folderName
                 )
                 result.append(pageResult)
             }

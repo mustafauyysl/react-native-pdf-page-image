@@ -52,9 +52,10 @@ export default class PdfPageImage {
 
   static async generateAllPages(
     uri: string,
-    scale?: number
+    scale?: number,
+    folderName?: string
   ): Promise<PageImage[]> {
-    return RNPdfPageImage.generateAllPages(uri, sanitizeScale(scale));
+    return RNPdfPageImage.generateAllPages(uri, sanitizeScale(scale), folderName || '');
   }
 
   static async close(uri: string): Promise<void> {

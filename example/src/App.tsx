@@ -15,7 +15,7 @@ type ErrorType = { code: string; message: string };
 
 export default function App() {
   const [thumbnail, setThumbnail] = React.useState<PageImage | undefined>();
-
+  const [allPages, setAllPages] = React.useState<PageImage[] | undefined>();
   const [error, setError] = React.useState<ErrorType | undefined>();
 
   const onPress = async () => {
@@ -25,6 +25,7 @@ export default function App() {
       });
       const result = await PdfPageImage.generate(uri, 0, 1.0);
       setThumbnail(result);
+      setAllPages(undefined);
       setError(undefined);
 
     } catch (err) {
@@ -32,16 +33,20 @@ export default function App() {
         // User cancelled the picker, exit any dialogs or menus and move on
       } else {
         setThumbnail(undefined);
+        setAllPages(undefined);
         setError(err as ErrorType);
       }
     }
   };
 
-  /*const onPress = async () => {
+  const onPressAllPages = async () => {
     try {
-      const uri  = "https://pdfobject.com/pdf/sample.pdf"
-      const result = await PdfPageImage.generate(uri, 0, 1.0);
-      setThumbnail(result);
+      const { uri } = await DocumentPicker.pickSingle({
+        type: [DocumentPicker.types.pdf],
+      });
+      const result = await PdfPageImage.generateAllPages(uri, 1.0, 'deneme');
+      setAllPages(result);
+      setThumbnail(undefined);
       setError(undefined);
 
     } catch (err) {
@@ -49,10 +54,11 @@ export default function App() {
         // User cancelled the picker, exit any dialogs or menus and move on
       } else {
         setThumbnail(undefined);
+        setAllPages(undefined);
         setError(err as ErrorType);
       }
     }
-  };*/
+  };
 
   const ThumbnailResult = thumbnail ? (
     <>
@@ -67,6 +73,25 @@ export default function App() {
     </>
   ) : null;
 
+  const AllPagesResult = allPages ? (
+    <>
+      <Text style={styles.thumbnailInfo}>Generated {allPages.length} pages:</Text>
+      {allPages.map((page, index) => (
+        <View key={index} style={styles.pageContainer}>
+          <Text style={styles.pageTitle}>Page {index}</Text>
+          <Image
+            source={page}
+            resizeMode="contain"
+            style={styles.pageImage}
+          />
+          <Text style={styles.thumbnailInfo}>uri: {page.uri}</Text>
+          <Text style={styles.thumbnailInfo}>width: {page.width}</Text>
+          <Text style={styles.thumbnailInfo}>height: {page.height}</Text>
+        </View>
+      ))}
+    </>
+  ) : null;
+
   const ThumbnailError = error ? (
     <>
       <Text style={styles.thumbnailError}>Error code: {error.code}</Text>
@@ -76,12 +101,14 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.button}>
-        <Button onPress={onPress} title="Pick PDF File" />
+      <View style={styles.buttonContainer}>
+        <Button onPress={onPress} title="Pick PDF File (Single Page)" />
+        <Button onPress={onPressAllPages} title="Pick PDF File (All Pages to 'deneme' folder)" />
       </View>
       <ScrollView>
         <View style={styles.thumbnailPreview}>
           {ThumbnailResult}
+          {AllPagesResult}
           {ThumbnailError}
         </View>
       </ScrollView>
@@ -96,8 +123,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 40,
   },
-  button: {
+  buttonContainer: {
+    flexDirection: 'row',
     margin: 20,
+    gap: 10,
   },
   thumbnailPreview: {
     padding: 0,
@@ -115,5 +144,22 @@ const styles = StyleSheet.create({
   },
   thumbnailError: {
     color: 'crimson',
+  },
+  pageContainer: {
+    padding: 10,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  pageTitle: {
+    fontWeight: 'bold',
+    padding: 5,
+    fontSize: 16,
+  },
+  pageImage: {
+    width: '100%',
+    height: 200,
+    borderColor: '#000',
+    borderWidth: 1,
+    backgroundColor: '#eee',
   },
 });

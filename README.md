@@ -29,6 +29,28 @@ PdfPageImage.generateAllPages(uri, scale)
   .then(images => images.forEach((image, index) => console.log(`Page ${index+1}: ${image.uri}, Width: ${image.width}, Height: ${image.height}`)))
   .catch(error => console.error('Error generating images:', error));
 
+// Generate images from all pages and save to a specific folder
+PdfPageImage.generateAllPages(uri, scale, 'my_pdf_folder')
+  .then(images => {
+    console.log(`Generated ${images.length} pages in 'my_pdf_folder'`);
+    // Also creates a thumbnail.png file for the first page
+    images.forEach((image, index) => console.log(`Page ${index}: ${image.uri}`));
+  })
+  .catch(error => console.error('Error generating images:', error));
+```
+
+**Note:** When you provide a `folderName` parameter, the method will:
+- Create a folder with the specified name in the app's documents directory
+- Save each page as `0.png`, `1.png`, `2.png`, etc.
+- Automatically create a `thumbnail.png` file (small version of the first page)
+
+**Folder structure example:**
+```
+📁 Documents/my_pdf_folder/
+  ├── 📄 thumbnail.png (First page thumbnail - 0.3x scale)
+  ├── 📄 0.png (Page 0 - full scale)
+  ├── 📄 1.png (Page 1 - full scale)
+  └── 📄 2.png (Page 2 - full scale)
 ```
 
 
@@ -79,11 +101,15 @@ PdfPageImage.close(uri)
   - page: Page number to render.
   - scale: Scale of the generated image, optional
 
-`generateAllPages(uri: string, scale?: number): Promise<PageImage[]>`
+`generateAllPages(uri: string, scale?: number, folderName?: string): Promise<PageImage[]>`
 
   Generates images from all pages of the PDF document.
   - uri: Path to the PDF file.
   - scale: Scale of the generated images, optional.
+  - folderName: Name of the folder to save images in, optional. When provided:
+    - Creates a folder in the app's documents directory
+    - Saves pages as `0.png`, `1.png`, `2.png`, etc.
+    - Automatically creates `thumbnail.png` (0.3x scale of first page)
 
 `close(uri: string): Promise<void>`
 

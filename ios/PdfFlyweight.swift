@@ -86,7 +86,9 @@ class PdfFlyweight {
      */
     private func generatePage(
         page: Int,
-        scale: CGFloat = 2.0
+        scale: CGFloat = 2.0,
+        folderName: String? = nil,
+        isThumbnail: Bool = false
     ) throws -> [String: Any] {
         
         guard let pdfPage = document.page(at: page) else {
@@ -122,19 +124,8 @@ class PdfFlyweight {
             context.cgContext.restoreGState()
         }
         
-        /*
-        // Definir el tamaño escalado en base al factor de escala deseado
-            // Multiplicamos el factor de escala por 2 para compensar la menor resolución de la miniatura
-        let scaledSize = CGSize(
-            width: pageRect.width * scale,
-            height: pageRect.height * scale)
-        
-        let scaledImage = pdfPage.thumbnail(of: scaledSize, for: .mediaBox)
-        */
-        
-        
         // Determine the output file path
-        let outputFile = generateOutputFilename()
+        let outputFile = generateOutputFilename(pageIndex: page, folderName: folderName, isThumbnail: isThumbnail)
         
         // Convertir la UIImage escalada a datos PNG
         guard let data = scaledImage.pngData() else {
@@ -146,7 +137,7 @@ class PdfFlyweight {
         
         // Return the file URI and dimensions of the output image
         return [
-            "uri": outputFile.absoluteString, //"base64": data.base64EncodedString(),
+            "uri": outputFile.absoluteString,
             "width": Int(scaledSize.width),
             "height": Int(scaledSize.height)
         ]
@@ -157,17 +148,27 @@ class PdfFlyweight {
      */
     public func getPage(
         index: Int,
-        scale: CGFloat = 2.0
+        scale: CGFloat = 2.0,
+        folderName: String? = nil
     ) throws -> [String: Any] {
-        let key = "\(index):\(scale)"
+        let key = "\(index):\(scale):\(folderName ?? "")"
         
         // Verificar si la pagina ya está en la caché
         if let cachedPage = pageCache[key] {
             return cachedPage
         }
 
-        let page = try generatePage(page: index, scale: scale)
+        let page = try generatePage(page: index, scale: scale, folderName: folderName)
         pageCache[key] = page // Guardar la pagina en la caché
+        
+        // Si es la primera página y hay folderName, generar también el thumbnail
+        if index == 0 && folderName != nil && !folderName!.isEmpty {
+            let thumbnailKey = "\(index):0.3:\(folderName ?? ""):thumbnail"
+            if pageCache[thumbnailKey] == nil {
+                let thumbnail = try generatePage(page: index, scale: 0.3, folderName: folderName, isThumbnail: true)
+                pageCache[thumbnailKey] = thumbnail
+            }
+        }
         
         return page;
     }
@@ -175,20 +176,20 @@ class PdfFlyweight {
     /**
      Genera un nombre de archivo temporal único para almacenar un bitmap.
      */
-    private func generateOutputFilename() -> URL {
-        // Generar un UUID único
-        let uuidString = UUID().uuidString
-        
+    private func generateOutputFilename(pageIndex: Int, folderName: String? = nil, isThumbnail: Bool = false) -> URL {
         // Obtener el directorio de documentos de la aplicación
         guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             fatalError("Error obteniendo el directorio de documentos.")
         }
         
-        // Construir el nombre del archivo con el UUID y una extensión
-        let filename = "\(uuidString).png"
+        // Construir el nombre del archivo
+        let filename = isThumbnail ? "thumbnail.png" : "\(pageIndex).png"
         
         // Combinar el directorio de documentos con el nombre del archivo para obtener la URL completa
-        return documentsDirectory.appendingPathComponent(filename)
+        let folder = folderName ?? ""
+        let outputDirectory = documentsDirectory.appendingPathComponent(folder)
+        try? FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+        return outputDirectory.appendingPathComponent(filename)
     }
        
     /**
