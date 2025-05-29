@@ -42,12 +42,12 @@ PdfPageImage.generateAllPages(uri, scale, 'my_pdf_folder')
 **Note:** When you provide a `folderName` parameter, the method will:
 - Create a folder with the specified name in the app's documents directory
 - Save each page as `0.png`, `1.png`, `2.png`, etc.
-- Automatically create a `thumbnail.png` file (small version of the first page)
+- Automatically create a `thumbnail.png` file (optimized thumbnail of first page, max 300px)
 
 **Folder structure example:**
 ```
 📁 Documents/my_pdf_folder/
-  ├── 📄 thumbnail.png (First page thumbnail - 0.3x scale)
+  ├── 📄 thumbnail.png (First page thumbnail - max 300px)
   ├── 📄 0.png (Page 0 - full scale)
   ├── 📄 1.png (Page 1 - full scale)
   └── 📄 2.png (Page 2 - full scale)
@@ -109,7 +109,7 @@ PdfPageImage.close(uri)
   - folderName: Name of the folder to save images in, optional. When provided:
     - Creates a folder in the app's documents directory
     - Saves pages as `0.png`, `1.png`, `2.png`, etc.
-    - Automatically creates `thumbnail.png` (0.3x scale of first page)
+    - Automatically creates `thumbnail.png` (optimized thumbnail of first page, max 300px)
 
 `close(uri: string): Promise<void>`
 

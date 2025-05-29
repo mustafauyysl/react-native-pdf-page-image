@@ -154,14 +154,63 @@ class PdfFlyweight(private val context: Context, val uriString: String) {
     
     // Si es la primera página y hay folderName, generar también el thumbnail
     if (index == 0 && folderName != null && folderName.isNotEmpty()) {
-      val thumbnailKey = "($index):(0.3):(${folderName}):thumbnail"
+      val thumbnailKey = "($index):thumbnail:(${folderName})"
       if (!pageCache.containsKey(thumbnailKey)) {
-        val thumbnail = generatePage(index, 0.3f, folderName, true)
+        val thumbnail = generateThumbnail(index, folderName)
         pageCache[thumbnailKey] = thumbnail
       }
     }
     
     return cachedPage
+  }
+
+  /**
+   * Genera un thumbnail optimizado de una página específica.
+   */
+  private fun generateThumbnail(page: Int, folderName: String): ReadableNativeMap {
+    if (page < 0 || page >= pdfRenderer.pageCount) {
+      throw RuntimeException("Page number $page is invalid, file has ${pdfRenderer.pageCount} pages")
+    }
+
+    val currentPage = pdfRenderer.openPage(page)
+    
+    // Definir un tamaño fijo para el thumbnail (máximo 300px en el lado más largo)
+    val maxThumbnailSize = 300
+    val aspectRatio = currentPage.width.toFloat() / currentPage.height.toFloat()
+    
+    val thumbnailWidth: Int
+    val thumbnailHeight: Int
+    
+    if (aspectRatio > 1.0f) {
+      // Landscape: width es más grande
+      thumbnailWidth = maxThumbnailSize
+      thumbnailHeight = (maxThumbnailSize / aspectRatio).toInt()
+    } else {
+      // Portrait: height es más grande
+      thumbnailWidth = (maxThumbnailSize * aspectRatio).toInt()
+      thumbnailHeight = maxThumbnailSize
+    }
+    
+    val bitmap = Bitmap.createBitmap(thumbnailWidth, thumbnailHeight, Bitmap.Config.ARGB_8888)
+
+    // Paint bitmap before rendering
+    val canvas = Canvas(bitmap)
+    canvas.drawColor(Color.WHITE)
+
+    // Render Pdf page into bitmap
+    currentPage.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+    currentPage.close()
+
+    // Write file
+    val outputFile = generateOutputFilename(page, folderName, true)
+    bitmap.storeAs(outputFile)
+
+    // Result
+    val values = WritableNativeMap()
+    values.putString("uri", Uri.fromFile(outputFile).toString())
+    values.putInt("width", thumbnailWidth)
+    values.putInt("height", thumbnailHeight)
+    return values
   }
 
   /**

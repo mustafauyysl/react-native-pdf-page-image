@@ -163,14 +163,64 @@ class PdfFlyweight {
         
         // Si es la primera página y hay folderName, generar también el thumbnail
         if index == 0 && folderName != nil && !folderName!.isEmpty {
-            let thumbnailKey = "\(index):0.3:\(folderName ?? ""):thumbnail"
+            let thumbnailKey = "\(index):thumbnail:\(folderName ?? "")"
             if pageCache[thumbnailKey] == nil {
-                let thumbnail = try generatePage(page: index, scale: 0.3, folderName: folderName, isThumbnail: true)
+                let thumbnail = try generateThumbnail(page: index, folderName: folderName)
                 pageCache[thumbnailKey] = thumbnail
             }
         }
         
         return page;
+    }
+    
+    /**
+     Genera un thumbnail optimizado de una página específica.
+     */
+    private func generateThumbnail(
+        page: Int,
+        folderName: String
+    ) throws -> [String: Any] {
+        
+        guard let pdfPage = document.page(at: page) else {
+            throw NSError(domain: "Page number \(page) is invalid, file has \(document.pageCount) pages", code: 404)
+        }
+        
+        // Obtener los límites de la página PDF
+        let pageRect = bound(pdfPage: pdfPage)
+        
+        // Definir un tamaño fijo para el thumbnail (máximo 300px en el lado más largo)
+        let maxThumbnailSize: CGFloat = 300.0
+        let aspectRatio = pageRect.width / pageRect.height
+        
+        let thumbnailSize: CGSize
+        if aspectRatio > 1.0 {
+            // Landscape: width es más grande
+            thumbnailSize = CGSize(width: maxThumbnailSize, height: maxThumbnailSize / aspectRatio)
+        } else {
+            // Portrait: height es más grande
+            thumbnailSize = CGSize(width: maxThumbnailSize * aspectRatio, height: maxThumbnailSize)
+        }
+        
+        // Usar PDFKit's thumbnail method para mejor calidad
+        let thumbnailImage = pdfPage.thumbnail(of: thumbnailSize, for: .mediaBox)
+        
+        // Determine the output file path
+        let outputFile = generateOutputFilename(pageIndex: page, folderName: folderName, isThumbnail: true)
+        
+        // Convertir la UIImage a datos PNG
+        guard let data = thumbnailImage.pngData() else {
+            throw NSError(domain: "Could not convert thumbnail to PNG format", code: 500)
+        }
+        
+        // Write the PNG data to the file system
+        try data.write(to: outputFile)
+        
+        // Return the file URI and dimensions of the output image
+        return [
+            "uri": outputFile.absoluteString,
+            "width": Int(thumbnailSize.width),
+            "height": Int(thumbnailSize.height)
+        ]
     }
     
     /**
