@@ -60,14 +60,15 @@ class PdfPageImageModule(reactContext: ReactApplicationContext) : ReactContextBa
   fun generateAllPages(uri: String, scale: Float, folderName: String, promise: Promise) {
     try {
       val pdf = getPdf(uri)
+      val pageCount = pdf.pageCount()
 
-      val result = WritableNativeArray()
-      for (page in 0 until pdf.pageCount()) {
-        val target = WritableNativeMap()
-        target.merge(pdf.getPage(page, scale, if (folderName.isEmpty()) null else folderName))
-        result.pushMap(target)
+      // Generate all pages
+      for (page in 0 until pageCount) {
+        pdf.getPage(page, scale, if (folderName.isEmpty()) null else folderName)
       }
-      promise.resolve(result)
+      
+      // Return only the page count
+      promise.resolve(pageCount)
 
     } catch (ex: IOException) {
       promise.reject("INTERNAL_ERROR", ex)

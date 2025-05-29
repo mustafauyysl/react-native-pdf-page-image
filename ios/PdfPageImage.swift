@@ -63,18 +63,20 @@ class PdfPageImage: NSObject {
         reject: RCTPromiseRejectBlock
     ) {
         do {
-            var result: [[String: Any]] = []
             let pdf = try getPdfFlyweight(uri: uri)
+            let pageCount = pdf.pageCount()
             
-            for page in 0 ..< pdf.pageCount() {
-                let pageResult = try pdf.getPage(
+            // Generate all pages
+            for page in 0 ..< pageCount {
+                _ = try pdf.getPage(
                     index: page,
                     scale: CGFloat(scale),
                     folderName: folderName.isEmpty ? nil : folderName
                 )
-                result.append(pageResult)
             }
-            resolve(result)
+            
+            // Return only the page count
+            resolve(pageCount)
             
         } catch {
             reject("INTERNAL_ERROR", error.localizedDescription, nil)
