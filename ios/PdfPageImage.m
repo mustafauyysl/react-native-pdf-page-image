@@ -10,7 +10,7 @@ RCT_EXTERN_METHOD(generate:(NSString *)uri withPage:(int)page withScale:(float)s
                   withResolver:(RCTPromiseResolveBlock)resolve
                   withRejecter:(RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(generateAllPages:(NSString *)uri withScale:(float)scale
+RCT_EXTERN_METHOD(generateAllPages:(NSString *)uri withScale:(float)scale withFolderName:(NSString *)folderName
                   withResolver:(RCTPromiseResolveBlock)resolve
                   withRejecter:(RCTPromiseRejectBlock)reject)
 
