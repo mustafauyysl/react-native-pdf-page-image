@@ -1,4 +1,4 @@
-//
+
 //  PdfFlyweight.swift
 //  PdfPageImage
 //
@@ -12,14 +12,14 @@ import UIKit
 
 @available(iOS 11.0, *)
 class PdfFlyweight {
-    
+
     public let document: PDFDocument
     private var pageCache: [String: [String: Any]] = [:]
-    
+
     init(uri: String) throws {
         self.document = try PdfFlyweight.createDocument(uri: uri)
     }
-    
+
     /**
      Función que obtiene un PDFDocument del URI.
      */
@@ -35,13 +35,13 @@ class PdfFlyweight {
                 throw NSError(domain: "Failed to decode base64 string", code: 500)
             }
             data = decodedData
-            
+
         } else if uri.hasPrefix("http://") || uri.hasPrefix("https://") || uri.hasPrefix("file://") {
             guard let url = URL(string: uri) else {
                 throw NSError(domain: "Invalid URL: \(uri)", code: 400)
             }
             data = try Data(contentsOf: url)
-            
+
         } else {
             let fileManager = FileManager.default
             guard fileManager.fileExists(atPath: uri) else {
@@ -56,7 +56,7 @@ class PdfFlyweight {
         guard let document = PDFDocument(data: data) else {
             throw NSError(domain: "Data is not a valid PDF", code: 500)
         }
-        
+
         return document
     }
 
@@ -66,7 +66,7 @@ class PdfFlyweight {
     public func pageCount() -> Int {
         return document.pageCount
     }
-    
+
     /**
      Obtener los límites de la página PDF
      */
@@ -80,7 +80,7 @@ class PdfFlyweight {
         }
         return pageRect
     }
-    
+
     /**
      Genera una página renderizada del PDF a una imagen, guardándola localmente.
      */
@@ -90,51 +90,50 @@ class PdfFlyweight {
         folderName: String? = nil,
         isThumbnail: Bool = false
     ) throws -> [String: Any] {
-        
+
         guard let pdfPage = document.page(at: page) else {
             throw NSError(domain: "Page number \(page) is invalid, file has \(document.pageCount) pages", code: 404)
         }
-        
+
         // Obtener los límites de la página PDF
         var pageRect = bound(pdfPage: pdfPage);
-        
+
         // Definir el tamaño escalado en base al factor de escala deseado
         let scaledSize = CGSize(
             width: pageRect.width * scale,
             height: pageRect.height * scale)
-        
+
         // Utilizar UIGraphicsImageRenderer para manejar el escalado y la creación de la imagen
-        let renderer = UIGraphicsImageRenderer(size: scaledSize)
-        
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1.0
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: scaledSize, format: format)
+
         // Renderizar la imagen utilizando el bloque de UIGraphicsImageRenderer
         let scaledImage = renderer.image { context in
-            context.cgContext.interpolationQuality = .high
-            
-            // Establecer un fondo blanco
-            context.cgContext.setFillColor(UIColor.white.cgColor)
-            context.cgContext.fill(CGRect(origin: .zero, size: scaledSize))
-            
-            // Dibujar la página en el contexto
-            context.cgContext.saveGState()
-            context.cgContext.translateBy(x: 0, y: scaledSize.height)
-            context.cgContext.scaleBy(x: 1.0, y: -1.0) // Invertir la imagen en el eje y
-            
-            // Especificar claramente cómo debe manejarse el renderizado del PDF
-            pdfPage.draw(with: .mediaBox, to: context.cgContext)
-            context.cgContext.restoreGState()
+            let ctx = context.cgContext
+            ctx.interpolationQuality = .high
+            ctx.setFillColor(UIColor.white.cgColor)
+            ctx.fill(CGRect(origin: .zero, size: scaledSize))
+
+            ctx.saveGState()
+            ctx.translateBy(x: 0, y: scaledSize.height)
+            ctx.scaleBy(x: 1.0, y: -1.0)
+            pdfPage.draw(with: .mediaBox, to: ctx)
+            ctx.restoreGState()
         }
-        
+
         // Determine the output file path
         let outputFile = generateOutputFilename(pageIndex: page, folderName: folderName, isThumbnail: isThumbnail)
-        
+
         // Convertir la UIImage escalada a datos PNG
         guard let data = scaledImage.pngData() else {
             throw NSError(domain: "Could not convert image to PNG format", code: 500)
         }
-        
+
         // Write the PNG data to the file system
         try data.write(to: outputFile)
-        
+
         // Return the file URI and dimensions of the output image
         return [
             "uri": outputFile.absoluteString,
@@ -142,7 +141,7 @@ class PdfFlyweight {
             "height": Int(scaledSize.height)
         ]
     }
-    
+
     /**
      * Obtiene una página específica, usando caché para mejorar el rendimiento.
      */
@@ -152,7 +151,7 @@ class PdfFlyweight {
         folderName: String? = nil
     ) throws -> [String: Any] {
         let key = "\(index):\(scale):\(folderName ?? "")"
-        
+
         // Verificar si la pagina ya está en la caché
         if let cachedPage = pageCache[key] {
             return cachedPage
@@ -160,7 +159,7 @@ class PdfFlyweight {
 
         let page = try generatePage(page: index, scale: scale, folderName: folderName)
         pageCache[key] = page // Guardar la pagina en la caché
-        
+
         // Si es la primera página y hay folderName, generar también el thumbnail
         if index == 0 && folderName != nil && !folderName!.isEmpty {
             let thumbnailKey = "\(index):thumbnail:\(folderName ?? "")"
@@ -169,10 +168,10 @@ class PdfFlyweight {
                 pageCache[thumbnailKey] = thumbnail
             }
         }
-        
+
         return page;
     }
-    
+
     /**
      Genera un thumbnail optimizado de una página específica.
      */
@@ -180,22 +179,22 @@ class PdfFlyweight {
         page: Int,
         folderName: String?
     ) throws -> [String: Any] {
-        
+
         guard let folderName = folderName, !folderName.isEmpty else {
             throw NSError(domain: "Folder name is required for thumbnail generation", code: 400)
         }
-        
+
         guard let pdfPage = document.page(at: page) else {
             throw NSError(domain: "Page number \(page) is invalid, file has \(document.pageCount) pages", code: 404)
         }
-        
+
         // Obtener los límites de la página PDF
         let pageRect = bound(pdfPage: pdfPage)
-        
+
         // Definir un tamaño fijo para el thumbnail (máximo 300px en el lado más largo)
         let maxThumbnailSize: CGFloat = 300.0
         let aspectRatio = pageRect.width / pageRect.height
-        
+
         let thumbnailSize: CGSize
         if aspectRatio > 1.0 {
             // Landscape: width es más grande
@@ -204,21 +203,21 @@ class PdfFlyweight {
             // Portrait: height es más grande
             thumbnailSize = CGSize(width: maxThumbnailSize * aspectRatio, height: maxThumbnailSize)
         }
-        
+
         // Usar PDFKit's thumbnail method para mejor calidad
         let thumbnailImage = pdfPage.thumbnail(of: thumbnailSize, for: .mediaBox)
-        
+
         // Determine the output file path
         let outputFile = generateOutputFilename(pageIndex: page, folderName: folderName, isThumbnail: true)
-        
+
         // Convertir la UIImage a datos PNG
         guard let data = thumbnailImage.pngData() else {
             throw NSError(domain: "Could not convert thumbnail to PNG format", code: 500)
         }
-        
+
         // Write the PNG data to the file system
         try data.write(to: outputFile)
-        
+
         // Return the file URI and dimensions of the output image
         return [
             "uri": outputFile.absoluteString,
@@ -226,7 +225,7 @@ class PdfFlyweight {
             "height": Int(thumbnailSize.height)
         ]
     }
-    
+
     /**
      Genera un nombre de archivo temporal único para almacenar un bitmap.
      */
@@ -235,17 +234,17 @@ class PdfFlyweight {
         guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             fatalError("Error obteniendo el directorio de documentos.")
         }
-        
+
         // Construir el nombre del archivo
         let filename = isThumbnail ? "thumbnail.png" : "\(pageIndex).png"
-        
+
         // Combinar el directorio de documentos con el nombre del archivo para obtener la URL completa
         let folder = folderName ?? ""
         let outputDirectory = documentsDirectory.appendingPathComponent(folder)
         try? FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
         return outputDirectory.appendingPathComponent(filename)
     }
-       
+
     /**
      Limpia recursos al cerrar, eliminando archivos temporales y cerrando conexiones.
      */
@@ -262,7 +261,7 @@ class PdfFlyweight {
                 }
             }
         }
-        
+
         // Limpia la caché después de eliminar todos los archivos
         pageCache.removeAll()
     }

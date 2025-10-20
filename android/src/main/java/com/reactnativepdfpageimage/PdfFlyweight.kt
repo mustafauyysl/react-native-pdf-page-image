@@ -124,10 +124,13 @@ class PdfFlyweight(private val context: Context, val uriString: String) {
     val height: Int = (currentPage.height * scale).toInt()
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
 
+    bitmap.density = Bitmap.DENSITY_NONE
+    bitmap.setHasAlpha(false)
+
     // Paint bitmap before rendering
-    val canvas = Canvas(bitmap);
-    canvas.drawColor(Color.WHITE);
-    canvas.drawBitmap(bitmap, 0f, 0f, null);
+    val canvas = Canvas(bitmap)
+    canvas.drawColor(Color.WHITE)
+    canvas.drawBitmap(bitmap, 0f, 0f, null)
 
     // Render Pdf page into bitmap
     currentPage.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
@@ -151,7 +154,7 @@ class PdfFlyweight(private val context: Context, val uriString: String) {
   fun getPage(index: Int, scale: Float = 2.0f, folderName: String? = null): ReadableNativeMap {
     val key = "($index):($scale):(${folderName ?: ""})"
     val cachedPage = pageCache.getOrPut(key) { generatePage(index, scale, folderName) }
-    
+
     // Si es la primera página y hay folderName, generar también el thumbnail
     if (index == 0 && folderName != null && folderName.isNotEmpty()) {
       val thumbnailKey = "($index):thumbnail:(${folderName})"
@@ -160,7 +163,7 @@ class PdfFlyweight(private val context: Context, val uriString: String) {
         pageCache[thumbnailKey] = thumbnail
       }
     }
-    
+
     return cachedPage
   }
 
@@ -173,14 +176,14 @@ class PdfFlyweight(private val context: Context, val uriString: String) {
     }
 
     val currentPage = pdfRenderer.openPage(page)
-    
+
     // Definir un tamaño fijo para el thumbnail (máximo 300px en el lado más largo)
     val maxThumbnailSize = 300
     val aspectRatio = currentPage.width.toFloat() / currentPage.height.toFloat()
-    
+
     val thumbnailWidth: Int
     val thumbnailHeight: Int
-    
+
     if (aspectRatio > 1.0f) {
       // Landscape: width es más grande
       thumbnailWidth = maxThumbnailSize
@@ -190,8 +193,11 @@ class PdfFlyweight(private val context: Context, val uriString: String) {
       thumbnailWidth = (maxThumbnailSize * aspectRatio).toInt()
       thumbnailHeight = maxThumbnailSize
     }
-    
+
     val bitmap = Bitmap.createBitmap(thumbnailWidth, thumbnailHeight, Bitmap.Config.ARGB_8888)
+
+    bitmap.density = Bitmap.DENSITY_NONE
+    bitmap.setHasAlpha(false)
 
     // Paint bitmap before rendering
     val canvas = Canvas(bitmap)
@@ -218,7 +224,7 @@ class PdfFlyweight(private val context: Context, val uriString: String) {
    */
   private fun generateOutputFilename(pageIndex: Int, folderName: String? = null, isThumbnail: Boolean = false): File {
     val filename = if (isThumbnail) "thumbnail.png" else "$pageIndex.png"
-    
+
     return if (folderName != null) {
       val folder = File(context.filesDir, folderName)
       if (!folder.exists()) {
